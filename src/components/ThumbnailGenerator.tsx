@@ -14,7 +14,7 @@ export default function ThumbnailGenerator() {
     e.preventDefault();
     e.stopPropagation();
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
+    if (file?.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onload = (event) => {
         setImage(event.target?.result as string);
