@@ -55,8 +55,54 @@ export default function ThumbnailGenerator() {
       ctx.drawImage(img, 0, 0);
 
       if (isCaptionApplied && caption) {
-        // Text settings
-        const fontSize = Math.max(60, img.width * 0.08); // Increased font size
+        // Target box on the left side of the thumbnail the caption should fill
+        const maxWidth = img.width * 0.42;
+        const maxHeight = img.height * 0.55;
+        const words = caption.toUpperCase().split(/\s+/).filter(Boolean);
+
+        const wrapLines = (fontSize: number) => {
+          ctx.font = `bold ${fontSize}px Impact, sans-serif`;
+          const wrapped: string[] = [];
+          let line = "";
+          for (const word of words) {
+            const testLine = line ? `${line} ${word}` : word;
+            if (ctx.measureText(testLine).width > maxWidth && line) {
+              wrapped.push(line);
+              line = word;
+            } else {
+              line = testLine;
+            }
+          }
+          if (line) wrapped.push(line);
+          return wrapped;
+        };
+
+        const fitsBox = (fontSize: number) => {
+          const wrapped = wrapLines(fontSize);
+          const widest = Math.max(
+            ...wrapped.map((l) => ctx.measureText(l).width),
+          );
+          return (
+            widest <= maxWidth && wrapped.length * fontSize * 1.1 <= maxHeight
+          );
+        };
+
+        // Largest font size (binary search) whose wrapped text still fits the box,
+        // so short captions render big and long ones scale down
+        const minFontSize = Math.max(24, img.width * 0.02);
+        let lo = minFontSize;
+        let hi = img.height * 0.35;
+        for (let i = 0; i < 20; i++) {
+          const mid = (lo + hi) / 2;
+          if (fitsBox(mid)) {
+            lo = mid;
+          } else {
+            hi = mid;
+          }
+        }
+        const fontSize = Math.floor(lo);
+        const lines = wrapLines(fontSize);
+
         ctx.font = `bold ${fontSize}px Impact, sans-serif`;
         ctx.fillStyle = "#FFD700"; // Gold
         ctx.strokeStyle = "#8B4513"; // Brown
@@ -64,36 +110,17 @@ export default function ThumbnailGenerator() {
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
 
-        // Text Wrapping Logic
-        const maxWidth = img.width * 0.4; // Limit width to 40% of image
-        const words = caption.toUpperCase().split(" ");
-        let line = "";
-        const lines = [];
-
-        for (let i = 0; i < words.length; i++) {
-          const testLine = line + words[i] + " ";
-          const metrics = ctx.measureText(testLine);
-          const testWidth = metrics.width;
-          if (testWidth > maxWidth && i > 0) {
-            lines.push(line);
-            line = words[i] + " ";
-          } else {
-            line = testLine;
-          }
-        }
-        lines.push(line);
-
         // Position and rotation
         ctx.save();
         ctx.translate(img.width * 0.1, img.height * 0.2); // Increased top margin
         ctx.rotate((-15 * Math.PI) / 180); // Rotate -15 degrees
-        
+
         // Draw each line
         lines.forEach((l, index) => {
-            ctx.strokeText(l, 0, index * fontSize * 1.1);
-            ctx.fillText(l, 0, index * fontSize * 1.1);
+          ctx.strokeText(l, 0, index * fontSize * 1.1);
+          ctx.fillText(l, 0, index * fontSize * 1.1);
         });
-        
+
         ctx.restore();
       }
     };
@@ -112,14 +139,14 @@ export default function ThumbnailGenerator() {
     // Start with high quality JPEG
     let quality = 0.95;
     let dataUrl = canvas.toDataURL("image/jpeg", quality);
-    
+
     // Check size (approximate: base64 length * 0.75)
     // 1.9 MB = 1.9 * 1024 * 1024 bytes
     const maxBytes = 1.9 * 1024 * 1024;
-    
+
     while (dataUrl.length * 0.75 > maxBytes && quality > 0.1) {
-        quality -= 0.05;
-        dataUrl = canvas.toDataURL("image/jpeg", quality);
+      quality -= 0.05;
+      dataUrl = canvas.toDataURL("image/jpeg", quality);
     }
 
     const link = document.createElement("a");
@@ -138,17 +165,19 @@ export default function ThumbnailGenerator() {
         <div className="flex h-screen w-full flex-col items-center justify-center border-4 border-dashed border-neutral-700 bg-neutral-800/50 text-neutral-400 transition-all hover:border-neutral-500 hover:bg-neutral-800/80">
           <Upload className="mb-4 h-20 w-20 opacity-50" />
           <h1 className="text-4xl font-bold">Drop your image here</h1>
-          <p className="mt-2 text-lg">or click to browse (not implemented yet, just drag & drop)</p>
+          <p className="mt-2 text-lg">
+            or click to browse (not implemented yet, just drag & drop)
+          </p>
         </div>
       ) : (
         <div className="relative flex h-screen w-full flex-col items-center justify-center p-8">
           <div className="relative flex max-h-full max-w-full flex-col items-center justify-center overflow-hidden rounded-lg shadow-2xl">
-             {/* Canvas is the main display */}
+            {/* Canvas is the main display */}
             <canvas
               ref={canvasRef}
               className="max-h-[80vh] max-w-full rounded-lg object-contain shadow-lg"
             />
-            
+
             {/* Controls Overlay */}
             <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-4 rounded-full bg-black/60 p-4 backdrop-blur-md transition-all hover:bg-black/80">
               <div className="relative flex items-center">
@@ -157,7 +186,7 @@ export default function ThumbnailGenerator() {
                   value={caption}
                   onChange={handleCaptionChange}
                   placeholder="Enter caption..."
-                  className="w-64 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-white placeholder-white/50 outline-none transition-all focus:border-white/50 focus:bg-white/20"
+                  className="w-64 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-white placeholder-white/50 transition-all outline-none focus:border-white/50 focus:bg-white/20"
                 />
                 <button
                   onClick={applyCaption}
@@ -178,15 +207,15 @@ export default function ThumbnailGenerator() {
                 </button>
               )}
             </div>
-            
+
             {/* Reset Button (Optional but good for UX) */}
-             <button 
-                onClick={() => setImage(null)}
-                className="absolute top-4 right-4 rounded-full bg-red-500/80 p-2 text-white hover:bg-red-600"
-                title="Remove Image"
-             >
-                 ✕
-             </button>
+            <button
+              onClick={() => setImage(null)}
+              className="absolute top-4 right-4 rounded-full bg-red-500/80 p-2 text-white hover:bg-red-600"
+              title="Remove Image"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}
