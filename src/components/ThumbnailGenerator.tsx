@@ -112,7 +112,7 @@ export default function ThumbnailGenerator() {
 
         // Position and rotation
         ctx.save();
-        ctx.translate(img.width * 0.1, img.height * 0.2); // Increased top margin
+        ctx.translate(img.width * 0.05, img.height * 0.2); // Anchor near the left edge
         ctx.rotate((-15 * Math.PI) / 180); // Rotate -15 degrees
 
         // Draw each line
