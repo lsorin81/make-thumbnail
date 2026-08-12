@@ -210,7 +210,11 @@ export default function ThumbnailGenerator() {
 
             {/* Reset Button (Optional but good for UX) */}
             <button
-              onClick={() => setImage(null)}
+              onClick={() => {
+                setImage(null);
+                setCaption("");
+                setIsCaptionApplied(false);
+              }}
               className="absolute top-4 right-4 rounded-full bg-red-500/80 p-2 text-white hover:bg-red-600"
               title="Remove Image"
             >
