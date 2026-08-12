@@ -212,7 +212,7 @@ export default function ThumbnailGenerator() {
             <button
               onClick={() => {
                 setImage(null);
-                setCaption(null);
+                setCaption("");
                 setIsCaptionApplied(false);
               }}
               className="absolute top-4 right-4 rounded-full bg-red-500/80 p-2 text-white hover:bg-red-600"
